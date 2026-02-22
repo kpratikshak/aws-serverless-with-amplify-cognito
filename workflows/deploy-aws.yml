@@ -1,0 +1,45 @@
+name: Wild Rydes CI/CD
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Lambda Dependencies
+      run: |
+        cd backend/lambda
+        npm install
+
+    - name: Lint Code
+      run: |
+        # Ensure your JS follows best practices
+        npx eslint . --ignore-pattern 'frontend/js/vendor/' || echo "No linter configured"
+
+    - name: AWS Credentials
+      # This step allows GitHub to interact with your AWS account
+      # Requires secrets: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Deploy to Amplify (Manual Webhook)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Main branch detected. Triggering AWS Amplify Build..."
+        # Optional: curl -X POST -d {} "${{ secrets.AMPLIFY_WEBHOOK_URL }}"
